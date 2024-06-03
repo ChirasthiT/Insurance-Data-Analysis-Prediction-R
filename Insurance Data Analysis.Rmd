@@ -1,0 +1,116 @@
+---
+title: "Insurance Data Analysis"
+author: "Chirasthi Thennakoon"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Insurance Data Analysis
+
+This is a R counterpart of the same Analysis done in python
+
+Link to the python project : <https://github.com/ChirasthiT/Insurance-Data-Analysis-Prediction-Python>
+
+This project will be done in a R-Markdown file (.Rmd), If not previewed please open in a R environment or in rstudio. HTML output will be knitted.
+
+## Reading and Exploring the dataset
+
+```{r}
+# Reading the data set
+dataset <- read.csv('insurance.csv')
+head(dataset)
+```
+
+```{r}
+col_names <- colnames(dataset)
+col_names
+```
+
+```{r}
+col_names[ !col_names == "charges"]
+```
+
+```{r}
+plot(dataset, col = ifelse(dataset$smoker == "yes", "red", "green"))
+```
+
+## Transforming the Data set 
+
+```{r}
+# Transforming categorical values into numericl values (dummy variables)
+head(dataset)
+
+dataset_transformed <- dataset
+
+categorical_col_names = c('sex', 'smoker', 'region')
+for (name in categorical_col_names) {
+  dataset_transformed[[name]] = as.numeric(factor(dataset_transformed[[name]]))
+}
+head(dataset_transformed)
+```
+
+```{r}
+plotting_func <- function(col_name) {
+  plot(x = dataset_transformed[[col_name]], y = dataset_transformed$charges)
+}
+```
+
+```{r}
+for (name in col_names) {
+  plotting_func(name)
+}
+```
+
+```{r}
+head(dataset_transformed)
+
+plot(
+  dataset_transformed$charges,
+  col = if_else(condition = dataset_transformed$smoker == 2, true = 'red', false = 'green'),
+  sub = "Smoker = red || Non Smoker = green"
+)
+
+boxplot(
+  dataset_transformed$charges ~ dataset_transformed$smoker,
+  col = if_else(condition = dataset_transformed$smoker == 2, true = 'green', false = 'red'),
+  horizontal = T
+)
+```
+
+```{r}
+subset(dataset, charges > 50000)
+```
+
+## Fitting the Linear Model
+
+```{r}
+train_indices <- sample(1:nrow(dataset_transformed), 0.8*nrow(dataset_transformed)) # 80% for training
+train_data <- dataset_transformed[train_indices, ]
+test_data <- dataset_transformed[-train_indices, ]
+```
+
+```{r}
+linear_model <- lm(formula = charges ~ age + bmi + children + smoker, data = train_data)
+summary(linear_model)
+```
+
+```{r}
+predictions <- predict(object = linear_model, newdata = test_data)
+
+cor.test(x = predictions, y = test_data$charges)
+```
+
+```{r}
+# Increase the training sample size
+train_indices_1 <- sample(1:nrow(dataset_transformed), 0.8*nrow(dataset_transformed))
+test_data_1 <- dataset_transformed[train_indices, ]
+predictions_1 <- predict(object = linear_model, test_data_1)
+cor.test(predictions_1, test_data_1$charges)
+```
+
+We have a accuracy of \<0.8, but the model may be over-fitted. Quadratic model may be more suitable to this data set
